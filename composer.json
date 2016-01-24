@@ -1,0 +1,42 @@
+{
+    "name": "rb/sphinx-hmac-zf2",
+    "description": "Hash-based Message Authentication Code (HMAC) for ZendFramework2",
+    "license": "Apache-2.0",
+    "keywords": [
+        "rb",
+        "hmac",
+        "zf2"
+    ],
+    "homepage": "https://github.com/reinaldoborges/rb-sphinx-hmac-zf2",
+    "autoload": {
+        "psr-4": {
+            "RB\\Sphinx\\Hmac\\Zend\\": "./src/"
+        },
+        "classmap": [
+            "./Module.php"
+        ]
+    },
+    "require": {
+        "php": ">=5.5",
+        "rb/sphinx-hmac": "dev-develop"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1-dev",
+            "dev-develop": "0.1-dev"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ZendTest\\Http\\": "test/"
+        },
+        "classmap": [
+            "./Module.php"
+        ]
+    },
+    "require-dev": {
+        "phpunit/PHPUnit": "~4.0"
+    }
+}
