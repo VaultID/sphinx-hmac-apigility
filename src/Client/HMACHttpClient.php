@@ -4,10 +4,10 @@ namespace RB\Sphinx\Hmac\Zend\Client;
 
 use Zend\Http\Client;
 use Zend\Http\Request;
+use Zend\Http\Exception\RuntimeException;
 
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
-
 
 class HMACHttpClient extends Client {
 	
@@ -17,9 +17,12 @@ class HMACHttpClient extends Client {
 	 */
 	protected $hmac = null;
 	
-	
 	/**
 	 * (non-PHPdoc)
+	 * 
+	 * Acrescenta HEADER para autenticação HMAC antes de enviar a requisição.
+	 * Verificar HEADER HMAC na resposta antes de devolver a resposta.
+	 * 
 	 * @see \Zend\Http\Client::send()
 	 */
 	public function send(Request $request = null) {
@@ -57,7 +60,37 @@ class HMACHttpClient extends Client {
 		/**
 		 * Enviar requisição
 		 */
-		return parent::send($request);
+		$response = parent::send($request);
+		
+		/**
+		 * Recuperar header com assinatura HMAC
+		 */
+		$header = $response->getHeaders()->get(HMACHeaderAdapter::HEADER_NAME);
+		
+		if( $header === false )
+			throw new RuntimeException('HMAC não está presente na resposta');
+		
+		$header = $header->getFieldValue();
+		
+		$headerData = explode(':', $header);
+		if( count($headerData) != 2 )
+			throw new RuntimeException('HMAC da resposta é inválido (header incorreto)');
+		
+		$versao = $headerData[0];
+		$assinatura = $headerData[1];
+		
+		/**
+		 * Verificar versão do protocolo
+		*/
+		if( $versao != HMACHeaderAdapter::VERSION )
+			throw new RuntimeException('HMAC da resposta é inválido (versão incorreta)');
+		
+		/**
+		 * Verificar assinatura
+		 */
+		$this->hmac->validate( $response->getBody(), $assinatura);
+		
+		return $response;
 	}
 	
 	
