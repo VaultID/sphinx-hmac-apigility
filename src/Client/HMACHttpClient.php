@@ -38,6 +38,12 @@ class HMACHttpClient extends Client {
 	protected $hmacSession = false;
 	
 	/**
+	 * Indicar se URI já foi autenticada
+	 * @var bool
+	 */
+	protected $hmacSignedUri = false;
+	
+	/**
 	 * Iniciar sessão HMAC
 	 * @param Request $request
 	 * @throws RuntimeException
@@ -150,6 +156,7 @@ class HMACHttpClient extends Client {
 			throw new RuntimeException('HMAC sem sessão só pode enviar uma mensagem');
 		
 		$request->setUri( $this->getSignedUri($request) );
+		$this->hmacSignedUri = true;
 		
 	}
 	
@@ -161,6 +168,9 @@ class HMACHttpClient extends Client {
 	 */
 	public function getSignedUri( Request $request = null ) {
 
+		if( $this->hmacSignedUri )
+			return $this->getUri();
+		
 		if( $this->hmac === null )
 			throw new RuntimeException('HMAC é necessário para a requisição');
 		
