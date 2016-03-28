@@ -291,19 +291,9 @@ class HMACHttpClient extends Client {
 			 * Assinar requisição
 			 */
 			$this->_signSession($request);
-				
-			/**
-			 * Enviar requisição
-			*/
-			$response = parent::send($request);
-				
-			/**
-			 * Verificar assinatura da resposta
-			*/
-			$this->_verify($response);
-			$this->hmac->nextMessage(); // Incrementar contagem na sessão após validar resposta
 			
 		} else {
+			
 			/**
 			 * Assinar requisição
 			 */
@@ -316,23 +306,67 @@ class HMACHttpClient extends Client {
 					$this->_sign($request);
 			}
 			
-			
-			/**
-			 * Enviar requisição
-			*/
-			$response = parent::send($request);
-			
-			/**
-			 * Verificar assinatura da resposta
-			*/
-			$this->_verify($response);
-			
 		}
+		
+		/**
+		 * Enviar requisição
+		 */
+		$response = parent::send($request);
+
+		
+		/**
+		 * Verificar se servidor informou erro de HMAC
+		 */
+		if( $response->getStatusCode() == 401 ) {
+			$detalhes = '';
+			
+			try {
+				$json = json_decode($response->getBody());
+				$detalhes = $json->detail;
+				
+				/**
+				 * Alertar da necessidade de início de sessão para comunicação com URI
+				 */
+				if( strcmp($json->detail,'HMAC Authentication required') == 0 ) {
+					if( $this->hmac instanceof HMACSession ) {
+						$detalhes .= ' (sessão HMAC expirou)';
+					} else {
+						$detalhes .= ' (servidor requer HMAC com sessão)';
+					}
+				} elseif( strcmp($json->detail,'5 - Sessão HMAC não iniciada') == 0 ) {
+					if( $this->hmac instanceof HMACSession ) {
+						$detalhes .= ' (sessão HMAC expirou)';
+					} else {
+						$detalhes .= ' (servidor requer HMAC com sessão)';
+					}
+				}
+				
+				/**
+				 * Detalhes adicionais enviados pelo servidor
+				 */
+				if( property_exists($json, 'hmac') )
+					$detalhes .= ' [' . $json->hmac . ' v' . $json->version . ']';
+				
+			} catch (Exception $e) {
+			}
+			
+			throw new RuntimeException('Erro HMAC remoto: ' . $detalhes);
+		}
+		
+		/**
+		 * Verificar assinatura da resposta
+		 */
+		$this->_verify($response);
+		
 		
 		/**
 		 * Incrementar contador interno após validar resposta
 		 */
 		$this->hmacContador++;
+		if( $this->hmac instanceof HMACSession ) {
+			$this->hmac->nextMessage(); // Incrementar contagem na sessão após validar resposta
+		}
+		
 		
 		return $response;
 	}
