@@ -149,6 +149,24 @@ class HMACHttpClient extends Client {
 		if( $this->hmacContador > 0 )
 			throw new RuntimeException('HMAC sem sessão só pode enviar uma mensagem');
 		
+		$request->setUri( $this->getSignedUri($request) );
+		
+	}
+	
+	/**
+	 * Retornar URI com autenticação HMAC (HMACUriAdapter)
+	 * @param Request $request
+	 * @throws RuntimeException
+	 * @return string
+	 */
+	public function getSignedUri( Request $request = null ) {
+
+		if( $this->hmac === null )
+			throw new RuntimeException('HMAC é necessário para a requisição');
+		
+		if( $request === null )
+			$request = $this->getRequest();
+		
 		/**
 		 * Dados a assinar (versão 1 do protocolo)
 		 */
@@ -174,8 +192,7 @@ class HMACHttpClient extends Client {
 				. (strpos($request->getUriString(),'?')===false?'?':'&')
 				. HMACUriAdapter::URI_PARAM_NAME . '=' . urlencode($authParam);
 		
-		$request->setUri( $uri );
-		
+		return $uri;
 	}
 
 	/**
