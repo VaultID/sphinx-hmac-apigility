@@ -10,8 +10,14 @@ use Zend\Http\Exception\RuntimeException;
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
 use RB\Sphinx\Hmac\HMACSession;
+use RB\Sphinx\Hmac\Zend\Server\HMACUriAdapter;
 
 class HMACHttpClient extends Client {
+	
+	const HMAC_HEADER = 0;
+	const HMAC_URI = 1;
+	
+	protected $hmacMode = self::HMAC_HEADER;
 	
 	/**
 	 * 
@@ -135,6 +141,44 @@ class HMACHttpClient extends Client {
 	}
 
 	/**
+	 * Assinar URI (sem sessão)
+	 * @param Request $request
+	 * @throws RuntimeException
+	 */
+	protected function _signUri( Request $request ) {
+		if( $this->hmacContador > 0 )
+			throw new RuntimeException('HMAC sem sessão só pode enviar uma mensagem');
+		
+		/**
+		 * Dados a assinar (versão 1 do protocolo)
+		 */
+		$assinarDados = $request->getUriString();   // URI
+
+		/**
+		 * Assinatura HMAC
+		 */
+		$assinaturaHmac = $this->hmac->getHmac( $assinarDados, HMACSession::SESSION_REQUEST );
+		
+		/**
+		 * Parâmetro de autenticação (protocolo versão 1)
+		*/
+		$authParam = HMACHeaderAdapter::VERSION    // versão do protocolo
+			. ':' . $this->hmac->getKeyId()         // ID da chave/aplicação/cliente
+			. ':' . $this->hmac->getNonceValue()    // nonce
+			. ':' . $assinaturaHmac;                // HMAC Hash
+		
+		/**
+		 * Acrescentar parâmetro HMAC na URI original
+		 */
+		$uri = $request->getUriString()
+				. (strpos($request->getUriString(),'?')===false?'?':'&')
+				. HMACUriAdapter::URI_PARAM_NAME . '=' . urlencode($authParam);
+		
+		$request->setUri( $uri );
+		
+	}
+
+	/**
 	 * Assinar requisição (com sessão)
 	 * @param Request $request
 	 * @throws RuntimeException
@@ -246,7 +290,15 @@ class HMACHttpClient extends Client {
 			/**
 			 * Assinar requisição
 			 */
-			$this->_sign($request);
+			switch ($this->hmacMode) {
+				case self::HMAC_URI:
+					$this->_signUri($request);
+					break;
+				case self::HMAC_HEADER:
+				default:
+					$this->_sign($request);
+			}
+			
 			
 			/**
 			 * Enviar requisição
@@ -285,6 +337,24 @@ class HMACHttpClient extends Client {
 	 */
 	public function getHmac() {
 		return $this->hmac;
+	}
+	
+	/**
+	 * 
+	 * @param int $modo
+	 * @return \RB\Sphinx\Hmac\Zend\Client\HMACHttpClient
+	 */
+	public function setHmacMode($modo) {
+		$this->hmacMode = $modo;
+		return $this;
+	}
+	
+	/**
+	 * 
+	 * @return int
+	 */
+	public function getHmacMode() {
+		return $this->hmacMode;
 	}
 	
 }
