@@ -4,13 +4,19 @@ namespace RB\Sphinx\Hmac\Zend\Server;
 
 use Zend\Mvc\MvcEvent;
 use Zend\Authentication\Result;
+use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\EventManager\SharedListenerAggregateInterface;
+use Zend\EventManager\SharedEventManagerInterface;
+
+use ZF\Rest\ResourceEvent;
+
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
 use RB\Sphinx\Hmac\Zend\Server\HMACSessionHeaderAdapter;
 use RB\Sphinx\Hmac\Exception\HMACException;
 use RB\Sphinx\Hmac\Exception\HMACAdapterInterruptException;
 
-class HMACListener {
+class HMACListener implements SharedListenerAggregateInterface {
 	
 	/**
 	 *
@@ -30,6 +36,12 @@ class HMACListener {
 	 * @var string
 	 */
 	protected $selector = NULL;
+
+	/**
+	 * 
+	 * @var array
+	 */
+	protected $restParams = array();
 	
 	/**
 	 * Listener para EVENT_ROUTE
@@ -37,33 +49,47 @@ class HMACListener {
 	 * @param MvcEvent $e        	
 	 */
 	public function __invoke(MvcEvent $e) {
-		$request = $e->getRequest ();
 		
 		/**
 		 * Só tratar requisições HTTP(S)
 		 */
+		$request = $e->getRequest ();
 		if (! method_exists ( $request, 'getHeaders' )) {
 			return;
 		}
+		
+		/**
+		 * Guardar objetos necessários para validação APIGILITY REST
+		 */
+		$app = $e->getApplication ();
+		$services = $app->getServiceManager ();
+		$config = $services->get ( 'Config' );
+			
+		$this->restParams['config'] = $config;
+		$this->restParams['request'] = $e->getRequest();
+		$this->restParams['serviceManager'] = $e->getApplication()->getServiceManager();
 		
 		/**
 		 * Verificar configuração de autenticação HMAC
 		 * $this->selector será definido a partir da configuração
 		 */
 		try {
+			/**
+			 * Se não requer autenticação HMAC, retornar silenciosamente
+			 */
 			if (! $this->_checkConfig ( $e ))
 				return;
 			
 			/**
-			 * Executar autenticação com Adapter definido
+			 * Executar autenticação com Adapter definido na configuração
 			 */
 			$adapter = __NAMESPACE__ . '\\' . $this->adapterClass;
-			if ($adapter::canHandle ( $e )) {
-				$this->adapter = new $adapter ();
+			if ($adapter::canHandle ( $request )) {
 				/**
 				 * Autenticar a requisição
 				 */
-				$result = $this->adapter->authenticate ( $e, $this->selector );
+				$this->adapter = new $adapter ();
+				$result = $this->adapter->authenticate ( $request, $this->selector, $e->getApplication()->getServiceManager() );
 			} else {
 				$result = new Result ( Result::FAILURE, null, array (
 						'HMAC Authentication required' 
@@ -156,15 +182,18 @@ class HMACListener {
 	 * @param MvcEvent $e        	
 	 * @return boolean - Aplicar autenticação HMAC
 	 */
-	protected function _checkConfig(MvcEvent $e) {
+	protected function _checkConfig(MvcEvent $e = null, $config = null) {
+		
+		/**
+		 * Recuperar configuração salva em __invoke()
+		 */
+		if( $config == null ) {
+			$config = $this->restParams['config'];
+		}
+		
 		/**
 		 * Se configuração não existir para o Controller, retornar silenciosamente
 		 */
-		$app = $e->getApplication ();
-		$services = $app->getServiceManager ();
-		
-		$config = $services->get ( 'Config' );
-		
 		if (! isset ( $config ['rb_sphinx_hmac_server'] ) || ! isset ( $config ['rb_sphinx_hmac_server'] ['controllers'] )) {
 			return false;
 		}
@@ -172,17 +201,46 @@ class HMACListener {
 		/**
 		 * Identificação do Controller/Action
 		 */
-		$params = $e->getRouteMatch ()->getParams ();
-		$controller = $params['controller'];
+		if( isset( $this->restParams['controller'] ) ) {
+			$controller = $this->restParams['controller'];
+		} else {
+			$params = $e->getRouteMatch ()->getParams ();
+			$controller = $params['controller'];
+		}
+		
 
 		/**
 		 * Apigility REST não tem Action
 		 */
-		if( isset( $params['action'] ) )
+		if( isset( $this->restParams['restEvent'] ) ) {
+			$action = $this->restParams['restEvent'];
+		} elseif( isset( $params['action'] ) ) {
 			$action = $params['action'];
-		else
-			$action = '';
-		
+		} else {
+			/**
+			 * Popular dados necessários para processamento no evento do REST.
+			 * e escutar esse evento
+			 */
+			$this->restParams['controller'] = $controller;
+			
+			/**
+			 * Registrar LISTENER para events APIGILITY REST
+			 */
+			$e->getApplication ()->getServiceManager ()->get('SharedEventManager')->attachAggregate($this);
+			
+			/**
+			 * Registrar LISTENER para events EVENT_DISPATCH (para assinar resposta)
+			 */
+			$e->getTarget()->getEventManager ()->attach ( MvcEvent::EVENT_DISPATCH, [
+					$this,
+					'onDispatchEvent'
+			], -100 );
+
+			/**
+			 * Não tentar validar HMAC agora
+			 */
+			return false;
+		}
 		
 		/**
 		 * Se Controller não está na lista, retornar sem autenticação HMAC
@@ -292,9 +350,130 @@ class HMACListener {
 	 * @throws HMACException
 	 */
 	public function onFinish(MvcEvent $e) {
+		
 		if ($this->adapter === NULL)
-			throw new HMACException ( 'Adapter HMAC não inicializado' );
+ 			throw new HMACException ( 'Adapter HMAC não inicializado' );
 		
 		$this->adapter->signResponse ( $e );
 	}
+	
+	
+	/**
+	 * @var \Zend\Stdlib\CallbackHandler[]
+	 */
+	protected $sharedListeners = array();
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see \Zend\EventManager\SharedListenerAggregateInterface::attachShared()
+	*/
+	public function attachShared(SharedEventManagerInterface $events)
+	{
+		$this->sharedListeners [] = $events->attach ( 'ZF\Rest\Resource', array(
+				'create',
+				'delete',
+				'deleteList',
+				'fetch',
+				'fetchAll',
+				'patch',
+				'patchList',
+				'replaceList',
+				'update'
+		), array (
+				$this,
+				'onRestEvent'
+		), 1000 );
+	
+	}
+	
+	/**
+	 * Listener para eventos APIGILITY REST
+	 * @param ResourceEvent $e
+	 * @return void|\ZF\ApiProblem\ApiProblem
+	 */
+	public function onRestEvent( ResourceEvent $e ) {
+		
+		/**
+		 * Guardar nome do evento REST
+		 */
+		$this->restParams['restEvent'] = $e->getName();
+		
+		/**
+		 * Verificar configuração de autenticação HMAC
+		 * $this->selector será definido a partir da configuração
+		 */
+		try {
+			if (! $this->_checkConfig(null,$this->restParams['config']))
+				return;
+				
+			/**
+			 * Executar autenticação com Adapter definido
+			 */
+			$adapter = __NAMESPACE__ . '\\' . $this->adapterClass;
+			if ($adapter::canHandle ( $this->restParams['request'] )) {
+				/**
+				 * Autenticar a requisição
+				*/
+				$this->adapter = new $adapter ();
+				$result = $this->adapter->authenticate ( $this->restParams['request'], $this->selector, $this->restParams['serviceManager'] );
+			} else {
+				$result = new Result ( Result::FAILURE, null, array (
+						'HMAC Authentication required'
+				) );
+			}
+		} catch ( HMACAdapterInterruptException $exception ) {
+			/**
+			 * Se o Adapter interromper a requisição, devolver imediatamente a resposta
+			 *
+			 * TARGET: Zend\Mvc\Controller\AbstractActionController
+			 */
+			return $e->getTarget ()->getResponse ();
+		} catch ( HMACException $exception ) {
+			$result = new Result ( Result::FAILURE, null, array (
+					'HMAC ERROR: ' . $exception->getMessage ()
+			) );
+		}
+		
+		/**
+		 * Verificar resultado da autenticação HMAC
+		 */
+		if (! $result->isValid ()) {
+			$e->stopPropagation(true);
+			return new \ZF\ApiProblem\ApiProblem(401, implode(" ", $result->getMessages()) . " (" . $this->adapter->getHmacDescription() . ' v' . $this->adapter->getVersion() . ")" );
+		} else {
+			/**
+			 * Registrar Adapter para disponibilizar ao Controller via Plugin
+			 */
+			$e->setParam ( 'RBSphinxHmacAdapter', $this->adapter );
+			
+			/**
+			 * Salvar Identity no ResourceEvent para que o Resource possa utiliza-lo
+			 */
+			$e->setParam ( 'RBSphinxHmacAdapterIdentity', $result->getIdentity () );
+		}
+	}
+	
+	/**
+	 * Listener para EVENT_DISPATCH, usado para assinar respostas APIGILITY REST
+	 * @param MvcEvent $e
+	 */
+	public function onDispatchEvent( MvcEvent $e ) {
+		if ($this->adapter !== NULL)
+			$this->adapter->signResponse ( $e );
+	}
+	
+	/**
+	 * Detach all previously attached listeners
+	 *
+	 * @param SharedEventManagerInterface $events
+	 */
+	public function detachShared(SharedEventManagerInterface $events)
+	{
+		foreach ($this->sharedListeners as $index => $listener) {
+			if ($events->detach('ZF\Rest\Resource', $listener)) {
+				unset($this->sharedListeners[$index]);
+			}
+		}
+	}
+	
 }
