@@ -3,6 +3,7 @@
 namespace RB\Sphinx\Hmac\Zend\Server;
 
 use Zend\Mvc\MvcEvent;
+use Zend\Http\Request;
 
 abstract class HMACAbstractAdapter {
 	
@@ -24,7 +25,7 @@ abstract class HMACAbstractAdapter {
 	 * @param MvcEvent $e        	
 	 * @return boolean
 	 */
-	public static function canHandle(MvcEvent $e) {
+	public static function canHandle(Request $request) {
 		return false;
 	}
 	
@@ -33,7 +34,7 @@ abstract class HMACAbstractAdapter {
 	 * @param MvcEvent $e        	
 	 * @param string $selector        	
 	 */
-	public abstract function authenticate(MvcEvent $e, $selector);
+	public abstract function authenticate(Request $request, $selector, $services);
 	
 	/**
 	 *
@@ -55,10 +56,8 @@ abstract class HMACAbstractAdapter {
 	/**
 	 * Utiliza o ServiceManager para instanciar o HMAC
 	 */
-	public function _initHmac(MvcEvent $e, $selector) {
+	public function _initHmac($services, $selector) {
 		if ($this->hmac === NULL) {
-			$app = $e->getApplication ();
-			$services = $app->getServiceManager ();
 			$this->hmac = $services->get ( $selector );
 		}
 	}

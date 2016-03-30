@@ -40,11 +40,11 @@ class HMACHeaderAdapter extends HMACAbstractAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::canHandle()
 	 */
-	public static function canHandle(MvcEvent $e) {
+	public static function canHandle(Request $request) {
 		/**
 		 * Se requisição tiver o HEADER, tratar com este Adapter
 		 */
-		return $e->getRequest ()->getHeaders ()->has ( self::HEADER_NAME );
+		return $request->getHeaders ()->has ( self::HEADER_NAME );
 	}
 	
 	/**
@@ -87,9 +87,7 @@ class HMACHeaderAdapter extends HMACAbstractAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::authenticate()
 	 */
-	public function authenticate(MvcEvent $e, $selector) {
-		$request = $e->getRequest ();
-		
+	public function authenticate(Request $request, $selector, $services) {
 		/**
 		 * VERIFICAR ESTRUTURA DO HEADER
 		 *
@@ -108,7 +106,7 @@ class HMACHeaderAdapter extends HMACAbstractAdapter {
 			/**
 			 * Instanciar HMAC
 			 */
-			$this->_initHmac ( $e, $selector );
+			$this->_initHmac ( $services, $selector );
 			
 			/**
 			 * Tratar HEADER de acordo com a versão do protocolo

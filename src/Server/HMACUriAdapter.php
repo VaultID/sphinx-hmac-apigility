@@ -3,7 +3,9 @@
 namespace RB\Sphinx\Hmac\Zend\Server;
 
 use Zend\Mvc\MvcEvent;
+use Zend\Http\Request;
 use Zend\Authentication\Result;
+
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Algorithm\HMACv1;
 use RB\Sphinx\Hmac\Hash\Sha256;
@@ -32,11 +34,11 @@ class HMACUriAdapter extends HMACHeaderAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::canHandle()
 	 */
-	public static function canHandle(MvcEvent $e) {
+	public static function canHandle(Request $request) {
 		/**
 		 * Se requisição tiver o HEADER, tratar com este Adapter
 		 */
-		return ($e->getRequest ()->getQuery ( self::URI_PARAM_NAME, NULL ) !== NULL);
+		return ($request->getQuery ( self::URI_PARAM_NAME, NULL ) !== NULL);
 	}
 	
 	/**
