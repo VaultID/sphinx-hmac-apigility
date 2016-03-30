@@ -172,8 +172,17 @@ class HMACListener {
 		/**
 		 * Identificação do Controller/Action
 		 */
-		$controller = $e->getRouteMatch ()->getParams ()['controller'];
-		$action = $e->getRouteMatch ()->getParams ()['action'];
+		$params = $e->getRouteMatch ()->getParams ();
+		$controller = $params['controller'];
+
+		/**
+		 * Apigility REST não tem Action
+		 */
+		if( isset( $params['action'] ) )
+			$action = $params['action'];
+		else
+			$action = '';
+		
 		
 		/**
 		 * Se Controller não está na lista, retornar sem autenticação HMAC
