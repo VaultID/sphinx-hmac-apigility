@@ -34,7 +34,7 @@ abstract class HMACAbstractAdapter {
 	 * @param MvcEvent $e        	
 	 * @param string $selector        	
 	 */
-	public abstract function authenticate(Request $request, $selector, $services);
+	public abstract function authenticate(Request $request, $selector, $services, MvcEvent $e = null);
 	
 	/**
 	 *

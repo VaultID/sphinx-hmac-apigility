@@ -87,7 +87,7 @@ class HMACHeaderAdapter extends HMACAbstractAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::authenticate()
 	 */
-	public function authenticate(Request $request, $selector, $services) {
+	public function authenticate(Request $request, $selector, $services, MvcEvent $e = null) {
 		/**
 		 * VERIFICAR ESTRUTURA DO HEADER
 		 *

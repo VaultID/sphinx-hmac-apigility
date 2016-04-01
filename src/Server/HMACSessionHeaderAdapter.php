@@ -14,6 +14,7 @@ use RB\Sphinx\Hmac\HMACSession;
 use RB\Sphinx\Hmac\Exception\HMACAdapterInterruptException;
 use Zend\Session\Container;
 use Zend\Http\Response;
+use Zend\Http\Request;
 
 class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 	
@@ -50,8 +51,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::canHandle()
 	 */
-	public static function canHandle(MvcEvent $e) {
-		$request = $e->getRequest ();
+	public static function canHandle(Request $request) {
 		$headers = $request->getHeaders ();
 		
 		/**
@@ -89,8 +89,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 	 *
 	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::authenticate()
 	 */
-	public function authenticate(MvcEvent $e, $selector) {
-		$request = $e->getRequest ();
+	public function authenticate(Request $request, $selector, $services, MvcEvent $e = null) {
 		
 		/**
 		 * VERIFICAR HEADERS DO PROTOCOLO
@@ -135,7 +134,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 			if (isset ( $session->hmac )) {
 				$this->hmac = $session->hmac;
 			} else {
-				$this->_initHmac ( $e, $selector );
+				$this->_initHmac ( $services, $selector );
 			}
 			
 			/**
