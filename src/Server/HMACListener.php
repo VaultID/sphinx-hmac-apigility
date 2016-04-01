@@ -18,6 +18,12 @@ use RB\Sphinx\Hmac\Exception\HMACAdapterInterruptException;
 
 class HMACListener implements SharedListenerAggregateInterface {
 	
+	protected $_debugCount = 0;
+	protected function _debug($msg) {
+		$this->_debugCount++;
+		file_put_contents('/tmp/rest.log', $this->_debugCount . ': ' . $msg . "\n", FILE_APPEND);
+	}
+	
 	/**
 	 *
 	 * @var HMACAbstractAdapter
@@ -50,6 +56,8 @@ class HMACListener implements SharedListenerAggregateInterface {
 	 */
 	public function __invoke(MvcEvent $e) {
 		
+		$this->_debug('__invoke');
+		
 		/**
 		 * Só tratar requisições HTTP(S)
 		 */
@@ -81,6 +89,11 @@ class HMACListener implements SharedListenerAggregateInterface {
 				return;
 			
 			/**
+			 * Registrar no evento a necessidade de resposta com assinatura HMAC
+			 */
+			$e->setParam ( 'RBSphinxHmacRequired', TRUE );
+			
+			/**
 			 * Executar autenticação com Adapter definido na configuração
 			 */
 			$adapter = __NAMESPACE__ . '\\' . $this->adapterClass;
@@ -89,7 +102,14 @@ class HMACListener implements SharedListenerAggregateInterface {
 				 * Autenticar a requisição
 				 */
 				$this->adapter = new $adapter ();
-				$result = $this->adapter->authenticate ( $request, $this->selector, $e->getApplication()->getServiceManager() );
+				
+				/**
+				 * Registrar Adapter para disponibilizar ao Controller via Plugin
+				 */
+				$e->setParam ( 'RBSphinxHmacAdapter', $this->adapter );
+				
+				
+				$result = $this->adapter->authenticate ( $request, $this->selector, $e->getApplication()->getServiceManager(), $e );
 			} else {
 				$result = new Result ( Result::FAILURE, null, array (
 						'HMAC Authentication required' 
@@ -153,27 +173,6 @@ class HMACListener implements SharedListenerAggregateInterface {
 		 */
 		$e->setParam ( 'RBSphinxHmacAdapterIdentity', $result->getIdentity () );
 		
-		
-		/**
-		 * Registrar Listener para inserir assinatura HMAC, caso o Adapter esteja definido
-		 */
-		if ($this->adapter !== NULL) {
-			$target = $e->getTarget ();
-			if (! $target || ! is_object ( $target ) || ! method_exists ( $target, 'getEventManager' )) {
-				return;
-			}
-			
-			$events = $target->getEventManager ();
-			$events->attach ( 'finish', [ 
-					$this,
-					'onFinish' 
-			], 1000 );
-			
-			/**
-			 * Registrar Adapter para disponibilizar ao Controller via Plugin
-			 */
-			$e->setParam ( 'RBSphinxHmacAdapter', $this->adapter );
-		}
 	}
 	
 	/**
@@ -183,6 +182,7 @@ class HMACListener implements SharedListenerAggregateInterface {
 	 * @return boolean - Aplicar autenticação HMAC
 	 */
 	protected function _checkConfig(MvcEvent $e = null, $config = null) {
+		$this->_debug('_checkConfig');
 		
 		/**
 		 * Recuperar configuração salva em __invoke()
@@ -228,14 +228,6 @@ class HMACListener implements SharedListenerAggregateInterface {
 			 */
 			$e->getApplication ()->getServiceManager ()->get('SharedEventManager')->attachAggregate($this);
 			
-			/**
-			 * Registrar LISTENER para events EVENT_DISPATCH (para assinar resposta)
-			 */
-			$e->getTarget()->getEventManager ()->attach ( MvcEvent::EVENT_DISPATCH, [
-					$this,
-					'onDispatchEvent'
-			], -100 );
-
 			/**
 			 * Não tentar validar HMAC agora
 			 */
@@ -350,11 +342,15 @@ class HMACListener implements SharedListenerAggregateInterface {
 	 * @throws HMACException
 	 */
 	public function onFinish(MvcEvent $e) {
+		$this->_debug('onFinish');
 		
-		if ($this->adapter === NULL)
- 			throw new HMACException ( 'Adapter HMAC não inicializado' );
-		
-		$this->adapter->signResponse ( $e );
+		/**
+		 * Verificar no evento a necessidade de resposta com assinatura HMAC
+		 */
+		if( $e->getParam ( 'RBSphinxHmacRequired', false ) ) {
+			if ($this->adapter !== NULL)
+				$this->adapter->signResponse ( $e );
+		}
 	}
 	
 	
@@ -369,6 +365,10 @@ class HMACListener implements SharedListenerAggregateInterface {
 	*/
 	public function attachShared(SharedEventManagerInterface $events)
 	{
+		/**
+		 * Capturar eventos com prioridade alta para impedir execução do Controller sem
+		 * autenticação HMAC
+		 */
 		$this->sharedListeners [] = $events->attach ( 'ZF\Rest\Resource', array(
 				'create',
 				'delete',
@@ -392,6 +392,7 @@ class HMACListener implements SharedListenerAggregateInterface {
 	 * @return void|\ZF\ApiProblem\ApiProblem
 	 */
 	public function onRestEvent( ResourceEvent $e ) {
+		$this->_debug('onRestEvent');
 		
 		/**
 		 * Guardar nome do evento REST
@@ -439,7 +440,10 @@ class HMACListener implements SharedListenerAggregateInterface {
 		 */
 		if (! $result->isValid ()) {
 			$e->stopPropagation(true);
-			return new \ZF\ApiProblem\ApiProblem(401, implode(" ", $result->getMessages()) . " (" . $this->adapter->getHmacDescription() . ' v' . $this->adapter->getVersion() . ")" );
+			$descricao = implode(" ", $result->getMessages());
+			if( $this->adapter !== null )
+				$descricao .= " (" . $this->adapter->getHmacDescription() . ' v' . $this->adapter->getVersion() . ")";
+			return new \ZF\ApiProblem\ApiProblem(401, $descricao );
 		} else {
 			/**
 			 * Registrar Adapter para disponibilizar ao Controller via Plugin
@@ -451,15 +455,6 @@ class HMACListener implements SharedListenerAggregateInterface {
 			 */
 			$e->setParam ( 'RBSphinxHmacAdapterIdentity', $result->getIdentity () );
 		}
-	}
-	
-	/**
-	 * Listener para EVENT_DISPATCH, usado para assinar respostas APIGILITY REST
-	 * @param MvcEvent $e
-	 */
-	public function onDispatchEvent( MvcEvent $e ) {
-		if ($this->adapter !== NULL)
-			$this->adapter->signResponse ( $e );
 	}
 	
 	/**
