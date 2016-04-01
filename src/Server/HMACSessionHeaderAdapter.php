@@ -252,9 +252,12 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 				
 				/**
 				 * Após assinar mensagem atual, incrementar contador para aguardar próxima mensagem e salvar na sessão
+				 * Apenas se for uma requisição válida
 				 */
-				$this->hmac->nextMessage ();
-				$session->hmac = $this->hmac;
+				if( $response->getStatusCode() >= 200 && $response->getStatusCode() <= 299) {
+					$this->hmac->nextMessage ();
+					$session->hmac = $this->hmac;
+				}
 				break;
 			case HMACSession::SESSION_REQUEST :
 			case HMACSession::SESSION_RESPONSE :
