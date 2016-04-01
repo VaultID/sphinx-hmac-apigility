@@ -285,7 +285,7 @@ class HMACHttpClient extends Client {
 		
 		if( $request === null )
 			$request = $this->getRequest();
-
+		
 		/**
 		 * Verificar se é com ou sem sessão
 		 */
@@ -364,9 +364,10 @@ class HMACHttpClient extends Client {
 		}
 		
 		/**
-		 * Verificar assinatura da resposta
+		 * Verificar assinatura da resposta, se for resposta de sucesso (2xx)
 		 */
-		$this->_verify($response);
+		if( $response->getStatusCode() >= 200 && $response->getStatusCode() <= 299)
+			$this->_verify($response);
 		
 		
 		/**
