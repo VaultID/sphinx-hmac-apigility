@@ -173,14 +173,19 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 					
 					if ($this->dataType == HMACSession::SESSION_REQUEST) {
 						
-						$response = $e->getTarget ()->getResponse ();
-						$response->setContent ( $this->hmac->getDescription () );
-						$response->getHeaders ()->addHeaderLine ( 'Content-Type', 'application/text' );
-						
-						/**
-						 * Assinar NONCE2 para a resposta
-						 */
-						$this->signResponse ( $e );
+						if( $e !== null ) {
+							$response = $e->getTarget ()->getResponse ();
+							$response->setContent ( $this->hmac->getDescription () );
+							$response->getHeaders ()->addHeaderLine ( 'Content-Type', 'application/text' );
+							
+							/**
+							 * Assinar NONCE2 para a resposta
+							 */
+							$this->signResponse ( $e );
+							
+						} else {
+							file_put_contents('/tmp/rest.log', "[SESSION START]\n", FILE_APPEND);
+						}
 						
 						/**
 						 * Interromper requisição

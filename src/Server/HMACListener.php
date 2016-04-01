@@ -3,6 +3,7 @@
 namespace RB\Sphinx\Hmac\Zend\Server;
 
 use Zend\Mvc\MvcEvent;
+use Zend\Http\Request;
 use Zend\Authentication\Result;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\EventManager\SharedListenerAggregateInterface;
@@ -87,11 +88,6 @@ class HMACListener implements SharedListenerAggregateInterface {
 			 */
 			if (! $this->_checkConfig ( $e ))
 				return;
-			
-			/**
-			 * Registrar no evento a necessidade de resposta com assinatura HMAC
-			 */
-			$e->setParam ( 'RBSphinxHmacRequired', TRUE );
 			
 			/**
 			 * Executar autenticação com Adapter definido na configuração
@@ -347,9 +343,9 @@ class HMACListener implements SharedListenerAggregateInterface {
 		/**
 		 * Verificar no evento a necessidade de resposta com assinatura HMAC
 		 */
-		if( $e->getParam ( 'RBSphinxHmacRequired', false ) ) {
-			if ($this->adapter !== NULL)
-				$this->adapter->signResponse ( $e );
+		if ($this->adapter !== NULL) {
+			$this->_debug(' Sign');
+			$this->adapter->signResponse ( $e );
 		}
 	}
 	
@@ -394,6 +390,8 @@ class HMACListener implements SharedListenerAggregateInterface {
 	public function onRestEvent( ResourceEvent $e ) {
 		$this->_debug('onRestEvent');
 		
+		$sessionStart = false;
+		
 		/**
 		 * Guardar nome do evento REST
 		 */
@@ -424,11 +422,9 @@ class HMACListener implements SharedListenerAggregateInterface {
 			}
 		} catch ( HMACAdapterInterruptException $exception ) {
 			/**
-			 * Se o Adapter interromper a requisição, devolver imediatamente a resposta
-			 *
-			 * TARGET: Zend\Mvc\Controller\AbstractActionController
+			 * Se o Adapter interromper a requisição, indica início de sessão
 			 */
-			return $e->getTarget ()->getResponse ();
+			$sessionStart = true;
 		} catch ( HMACException $exception ) {
 			$result = new Result ( Result::FAILURE, null, array (
 					'HMAC ERROR: ' . $exception->getMessage ()
@@ -438,7 +434,7 @@ class HMACListener implements SharedListenerAggregateInterface {
 		/**
 		 * Verificar resultado da autenticação HMAC
 		 */
-		if (! $result->isValid ()) {
+		if ( !$sessionStart && !$result->isValid() ) {
 			$e->stopPropagation(true);
 			$descricao = implode(" ", $result->getMessages());
 			if( $this->adapter !== null )
@@ -453,7 +449,13 @@ class HMACListener implements SharedListenerAggregateInterface {
 			/**
 			 * Salvar Identity no ResourceEvent para que o Resource possa utiliza-lo
 			 */
-			$e->setParam ( 'RBSphinxHmacAdapterIdentity', $result->getIdentity () );
+			if( !$sessionStart )
+				$e->setParam ( 'RBSphinxHmacAdapterIdentity', $result->getIdentity () );
+		}
+		
+		if( $sessionStart ) {
+			$this->_debug('StopProg');
+			$e->stopPropagation(true);
 		}
 	}
 	
@@ -471,4 +473,39 @@ class HMACListener implements SharedListenerAggregateInterface {
 		}
 	}
 	
+	/**
+	 * Tentativa de capturar requisições OPTIONS para tratar início da sessão HMAC
+	 * @param MvcEvent $e
+	 */
+	public function onRoute(MvcEvent $e) {
+		$request = $e->getRequest();
+		$method = $request->getMethod();
+		if ($method === Request::METHOD_OPTIONS) {
+			$this->_debug('onRoute OPTIONS');
+			//$this->__invoke($e);
+			//$request->setMethod('HMACSESSION');
+			
+			$em = $e->getTarget()->getEventManager();
+			
+			$listeners = $em->getListeners(MvcEvent::EVENT_ROUTE);
+			foreach( $listeners as $listener ) {
+				$metadata = $listener->getMetadata();
+				
+				$this->_debug('  ' . print_r( $metadata ,true));
+				
+				//$this->_debug($listener->getMetadatum('event'));
+				
+				/**
+				 * APIGILITY ???
+				 */
+				if( $metadata['priority'] != 1000 ) {
+					if( $em->detach($listener) )
+						$this->_debug('   DETACH: OK');
+					else
+						$this->_debug('   DETACH: FAIL');
+				}
+			}
+			
+		}
+	}
 }
