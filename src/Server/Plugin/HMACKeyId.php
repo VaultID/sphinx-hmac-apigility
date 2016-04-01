@@ -12,7 +12,7 @@ class HMACKeyId extends AbstractPlugin {
 	 * Retorna o KeyID autenticado no HMAC
 	 */
 	public function __invoke() {
-		if ($controller instanceof AbstractController) 
+		if ($this->getController() instanceof AbstractController) 
 			return HMACServerHelper::getHmacKeyId($this->getController()->getEvent());
 		
 		return NULL;

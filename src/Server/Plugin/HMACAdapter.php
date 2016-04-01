@@ -12,7 +12,7 @@ class HMACAdapter extends AbstractPlugin {
 	 * Retorna o Adapter HMAC utilizado no HMAC
 	 */
 	public function __invoke() {
-		if ($controller instanceof AbstractController)
+		if ($this->getController() instanceof AbstractController)
 			return HMACServerHelper::getHmacAdapter($this->getController()->getEvent());
 		
 		return NULL;
