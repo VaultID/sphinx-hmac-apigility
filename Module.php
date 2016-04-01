@@ -5,6 +5,7 @@ namespace RB\Sphinx\Hmac\Zend;
 use Zend\ModuleManager\Feature\AutoloaderProviderInterface;
 use Zend\ModuleManager\Feature\ConfigProviderInterface;
 use Zend\Mvc\MvcEvent;
+use Zend\Mvc\ModuleRouteListener;
 
 class Module implements AutoloaderProviderInterface, ConfigProviderInterface {
 	public function getAutoloaderConfig() {
@@ -32,9 +33,20 @@ class Module implements AutoloaderProviderInterface, ConfigProviderInterface {
 		$em = $app->getEventManager ();
 		
 		/**
-		 *
-		 * @todo : Ajustar prioridade do Listener (precisa ser antes do processamento de ACL's)
+		 * Baixa prioridade, para avaliar necessidade de autenticação HMAC após todas as operações de rota
 		 */
-		$em->attach ( MvcEvent::EVENT_ROUTE, $services->get ( 'RB\Sphinx\Hmac\Zend\Server\HMACListener' ), - 500 );
+		$em->attach ( MvcEvent::EVENT_ROUTE, $services->get ( 'RB\Sphinx\Hmac\Zend\Server\HMACListener' ), -1000 );
+		
+		/**
+		 * Baixa prioridade, para acrescentar assinatura HMAC após todas as operações na resposta
+		 */
+		$moduleRouteListener = new ModuleRouteListener();
+		$moduleRouteListener->attach($em);
+		$em -> attach(
+				MvcEvent::EVENT_FINISH,
+				array($services->get ( 'RB\Sphinx\Hmac\Zend\Server\HMACListener' ), 'onFinish'),
+				-1000
+		);
+		
 	}
 }
