@@ -36,7 +36,7 @@ class HMACUriAdapter extends HMACHeaderAdapter {
 	 */
 	public static function canHandle(Request $request) {
 		/**
-		 * Se requisição tiver o HEADER, tratar com este Adapter
+		 * Se requisição tiver o parâmetro na URI, tratar com este Adapter
 		 */
 		return ($request->getQuery ( self::URI_PARAM_NAME, NULL ) !== NULL);
 	}
@@ -81,7 +81,7 @@ class HMACUriAdapter extends HMACHeaderAdapter {
 		$uriParam = preg_replace ( $pattern, '$1', $uriParam );
 		
 		/**
-		 * CHECAR ASSINATURA DA URI
+		 * CHECAR ASSINATURA DA URI SEM O PARÂMETRO DE AUTENTICAÇÃO DO HMAC
 		 */
 		$this->hmac->validate ( $uriParam, $hmac );
 	}

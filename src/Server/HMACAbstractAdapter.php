@@ -21,8 +21,9 @@ abstract class HMACAbstractAdapter {
 	protected $hmac;
 	
 	/**
+	 * Informa se o adapter pode tratar a requisição.
 	 *
-	 * @param MvcEvent $e        	
+	 * @param Request $request
 	 * @return boolean
 	 */
 	public static function canHandle(Request $request) {
@@ -30,13 +31,18 @@ abstract class HMACAbstractAdapter {
 	}
 	
 	/**
-	 *
-	 * @param MvcEvent $e        	
-	 * @param string $selector        	
+	 * Autentica mensagem HMAC recebida.
+	 * Dispara exceção se a autenticação falhar.
+	 * 
+	 * @param Request $request
+	 * @param unknown $selector
+	 * @param unknown $services
+	 * @param MvcEvent $e
 	 */
 	public abstract function authenticate(Request $request, $selector, $services, MvcEvent $e = null);
 	
 	/**
+	 * Assina resposta HMAC.
 	 *
 	 * @param MvcEvent $e        	
 	 * @param string $selector        	
@@ -44,7 +50,8 @@ abstract class HMACAbstractAdapter {
 	public abstract function signResponse(MvcEvent $e);
 	
 	/**
-	 *
+	 * Retorna descrição do HMAC (protocolo, hash, nonce)
+	 * 
 	 * @return string
 	 */
 	public function getHmacDescription() {
@@ -63,7 +70,8 @@ abstract class HMACAbstractAdapter {
 	}
 	
 	/**
-	 *
+	 * Informa versão do protocolo.
+	 * 
 	 * @return string
 	 */
 	public function getVersion() {
@@ -71,7 +79,7 @@ abstract class HMACAbstractAdapter {
 	}
 	
 	/**
-	 * Assinar mensagem
+	 * Assinar mensagem antes de enviar.
 	 *
 	 * @param string $data        	
 	 * @return string|NULL

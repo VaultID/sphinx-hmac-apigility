@@ -473,39 +473,4 @@ class HMACListener implements SharedListenerAggregateInterface {
 		}
 	}
 	
-	/**
-	 * Tentativa de capturar requisições OPTIONS para tratar início da sessão HMAC
-	 * @param MvcEvent $e
-	 */
-	public function onRoute(MvcEvent $e) {
-		$request = $e->getRequest();
-		$method = $request->getMethod();
-		if ($method === Request::METHOD_OPTIONS) {
-			$this->_debug('onRoute OPTIONS');
-			//$this->__invoke($e);
-			//$request->setMethod('HMACSESSION');
-			
-			$em = $e->getTarget()->getEventManager();
-			
-			$listeners = $em->getListeners(MvcEvent::EVENT_ROUTE);
-			foreach( $listeners as $listener ) {
-				$metadata = $listener->getMetadata();
-				
-				$this->_debug('  ' . print_r( $metadata ,true));
-				
-				//$this->_debug($listener->getMetadatum('event'));
-				
-				/**
-				 * APIGILITY ???
-				 */
-				if( $metadata['priority'] != 1000 ) {
-					if( $em->detach($listener) )
-						$this->_debug('   DETACH: OK');
-					else
-						$this->_debug('   DETACH: FAIL');
-				}
-			}
-			
-		}
-	}
 }

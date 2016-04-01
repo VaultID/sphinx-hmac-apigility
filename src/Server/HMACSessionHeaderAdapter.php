@@ -71,13 +71,13 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		$authData = explode ( ':', $authentication );
 		
 		/**
-		 * Início de sessão
+		 * Início de sessão detectado pela presença do HEADER específico
 		 */
 		if (count ( $authData ) == 4 && $headers->has ( self::HEADER_NAME_SESSION ))
 			return true;
 		
 		/**
-		 * Mensagens após início da sessão
+		 * Mensagens após início da sessão tem apenas a versão e o HMAC
 		 */
 		if (count ( $authData ) == 2)
 			return true;
@@ -117,9 +117,15 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		if (count ( $authData ) == 4 && $headers->has ( self::HEADER_NAME_SESSION ))
 			$this->dataType = HMACSession::SESSION_REQUEST;
 		
+		/**
+		 * Mensagem após início de sessão
+		 */
 		if (count ( $authData ) == 2)
 			$this->dataType = HMACSession::SESSION_MESSAGE;
 		
+		/**
+		 * HEADER em formato inválido
+		 */
 		if ($this->dataType === NULL) {
 			return new Result ( Result::FAILURE, null, array (
 					'Invalid ' . self::HEADER_NAME . ' header for HMAC Session' 
@@ -138,6 +144,9 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 				$this->_initHmac ( $services, $selector );
 			}
 			
+			if( !method_exists($this->hmac, 'getNonce2Value') )
+				throw new HMACException ( 'Protocolo com sessão requer HMACSession' );
+				
 			/**
 			 * Verificar se é HMACSession
 			 */
@@ -173,6 +182,9 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 					
 					if ($this->dataType == HMACSession::SESSION_REQUEST) {
 						
+						/**
+						 * Não assinar a resposta APIGILITY REST neste momento (deixar para o onFinish)
+						 */
 						if( $e !== null ) {
 							$response = $e->getTarget ()->getResponse ();
 							$response->setContent ( $this->hmac->getDescription () );
@@ -182,9 +194,6 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 							 * Assinar NONCE2 para a resposta
 							 */
 							$this->signResponse ( $e );
-							
-						} else {
-							file_put_contents('/tmp/rest.log', "[SESSION START]\n", FILE_APPEND);
 						}
 						
 						/**
@@ -211,9 +220,14 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 				'keyid' => $this->hmac->getKeyId () 
 		) );
 	}
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter::signResponse()
+	 */
 	public function signResponse(MvcEvent $event) {
 		/**
-		 * Se $hmac não estiver inicializado, não acrescentar assinatura, pois não é uma requisição HMAC
+		 * Se $hmac não estiver inicializado, não acrescentar assinatura pois não é uma requisição HMAC
 		 */
 		if ($this->hmac === NULL)
 			throw new HMACException ( 'HMAC não inicializado' );
@@ -237,24 +251,25 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 				$hmac = $this->hmac->getHmac ( $body, HMACSession::SESSION_MESSAGE );
 				
 				/**
-				 * Após assinar mensagem atual, incrementar contador para aguardar próxima mensagem, e salvar na sessão
+				 * Após assinar mensagem atual, incrementar contador para aguardar próxima mensagem e salvar na sessão
 				 */
-				
 				$this->hmac->nextMessage ();
 				$session->hmac = $this->hmac;
 				break;
 			case HMACSession::SESSION_REQUEST :
 			case HMACSession::SESSION_RESPONSE :
 				/**
-				 * Calcular HMAC apenas do NONCE2
+				 * Calcular HMAC apenas do NONCE2 para responder ao pedido de início de sessão
 				 */
-				$hmac = $this->hmac->getHmac ( $this->hmac->getNonce2Value (), HMACSession::SESSION_RESPONSE );
+				if( method_exists($this->hmac, 'getNonce2Value') ) {
+					$hmac = $this->hmac->getHmac ( $this->hmac->getNonce2Value (), HMACSession::SESSION_RESPONSE );
 				
-				/**
-				 * Iniciar sessão HMAC e guardar na sessão PHP
-				 */
-				$this->hmac->startSession ();
-				$session->hmac = $this->hmac;
+					/**
+					 * Iniciar sessão HMAC e guardar na sessão PHP
+					 */
+					$this->hmac->startSession ();
+					$session->hmac = $this->hmac;
+				}
 				
 				break;
 			default :
@@ -264,9 +279,12 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		/**
 		 * Acrescentar header com HMAC na resposta
 		 */
-		if ($this->dataType == HMACSession::SESSION_REQUEST)
-			$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $this->hmac->getNonce2Value () . ':' . $hmac );
-		else
-			$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $hmac );
+		if( method_exists($this->hmac, 'getNonce2Value') ) {
+			if ($this->dataType == HMACSession::SESSION_REQUEST) {
+				$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $this->hmac->getNonce2Value () . ':' . $hmac );
+			} else {
+				$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $hmac );
+			}
+		}
 	}
 }
