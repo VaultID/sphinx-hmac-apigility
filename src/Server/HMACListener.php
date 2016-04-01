@@ -22,7 +22,7 @@ class HMACListener implements SharedListenerAggregateInterface {
 	protected $_debugCount = 0;
 	protected function _debug($msg) {
 		$this->_debugCount++;
-		file_put_contents('/tmp/rest.log', $this->_debugCount . ': ' . $msg . "\n", FILE_APPEND);
+		//file_put_contents('/tmp/rest.log', $this->_debugCount . ': ' . $msg . "\n", FILE_APPEND);
 	}
 	
 	/**
