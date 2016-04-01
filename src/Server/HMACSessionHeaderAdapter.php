@@ -24,6 +24,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 	 * @var string
 	 */
 	const HEADER_NAME = 'HMAC-Authentication';
+	const HEADER_NAME_SESSION = 'HMAC-Authentication-Session';
 	
 	/**
 	 * Versão atual do Adapter
@@ -72,7 +73,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		/**
 		 * Início de sessão
 		 */
-		if (count ( $authData ) == 4 && $request->getMethod () == 'OPTIONS')
+		if (count ( $authData ) == 4 && $headers->has ( self::HEADER_NAME_SESSION ))
 			return true;
 		
 		/**
@@ -113,7 +114,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		/**
 		 * Início de sessão
 		 */
-		if (count ( $authData ) == 4 && $request->getMethod () == 'OPTIONS')
+		if (count ( $authData ) == 4 && $headers->has ( self::HEADER_NAME_SESSION ))
 			$this->dataType = HMACSession::SESSION_REQUEST;
 		
 		if (count ( $authData ) == 2)

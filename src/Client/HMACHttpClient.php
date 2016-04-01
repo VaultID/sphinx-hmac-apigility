@@ -8,9 +8,10 @@ use Zend\Http\Response;
 use Zend\Http\Exception\RuntimeException;
 
 use RB\Sphinx\Hmac\HMAC;
-use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
 use RB\Sphinx\Hmac\HMACSession;
 use RB\Sphinx\Hmac\Zend\Server\HMACUriAdapter;
+use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
+use RB\Sphinx\Hmac\Zend\Server\HMACSessionHeaderAdapter;
 
 class HMACHttpClient extends Client {
 	
@@ -55,9 +56,9 @@ class HMACHttpClient extends Client {
 		$sessionRequest = clone $request;
 		
 		/**
-		 * Início de sessão com método OPTIONS (sem BODY)
+		 * Início de sessão com header adicional (sem BODY)
 		 */
-		$sessionRequest->setMethod('OPTIONS');
+		$sessionRequest->getHeaders()->addHeaderLine(HMACSessionHeaderAdapter::HEADER_NAME_SESSION, 'Start');
 		$sessionRequest->setContent('');
 		
 		/**
