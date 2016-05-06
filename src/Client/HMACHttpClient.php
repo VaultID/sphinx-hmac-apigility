@@ -43,6 +43,7 @@ class HMACHttpClient extends Client {
 	 * @var bool
 	 */
 	protected $hmacSignedUri = false;
+	protected $hmacSignedUriString = null;
 	
 	/**
 	 * Iniciar sessão HMAC
@@ -172,7 +173,7 @@ class HMACHttpClient extends Client {
 	public function getSignedUri( Request $request = null ) {
 
 		if( $this->hmacSignedUri )
-			return $this->getUri();
+			return $this->hmacSignedUriString;
 		
 		if( $this->hmac === null )
 			throw new RuntimeException('HMAC é necessário para a requisição');
@@ -184,7 +185,7 @@ class HMACHttpClient extends Client {
 		 * Dados a assinar (versão 1 do protocolo)
 		 */
 		$assinarDados = $request->getUriString()
-			. (strpos($request->getUriString(),'?')===false? ($request->getQuery()->count() > 0? '?' : NULL):'&')
+			. ( ($request->getQuery()->count() > 0) ? ( strpos($request->getUriString(),'?')!==false?'&':'?' )	: NULL )
 			. $request->getQuery()->toString();   // URI
 		
 		/**
@@ -207,9 +208,10 @@ class HMACHttpClient extends Client {
 		$request->getQuery()->offsetSet(HMACUriAdapter::URI_PARAM_NAME,$authParam);
 		
 		$uri = $request->getUriString()
-				. (strpos($request->getUriString(),'?')===false?'?':'&')
+				. (strpos($request->getUriString(),'?')===false? ($request->getQuery()->count() > 0? '?' : NULL):'&')
 				. $request->getQuery()->toString();   // URI
 		
+		$this->hmacSignedUriString = $uri;
 		return $uri;
 	}
 
