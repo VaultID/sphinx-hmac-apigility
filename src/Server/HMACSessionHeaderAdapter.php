@@ -230,7 +230,7 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		 * Se $hmac não estiver inicializado, não acrescentar assinatura pois não é uma requisição HMAC
 		 */
 		if ($this->hmac === NULL)
-			throw new HMACException ( 'HMAC não inicializado' );
+			return;
 		
 		/**
 		 * Response do Controller
