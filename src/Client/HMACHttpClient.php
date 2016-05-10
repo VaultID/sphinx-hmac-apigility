@@ -342,35 +342,48 @@ class HMACHttpClient extends Client {
 			
 			try {
 				$json = json_decode($response->getBody());
-				$detalhes = $json->detail;
-				
-				/**
-				 * Alertar da necessidade de início de sessão para comunicação com URI
-				 */
-				if( strcmp($json->detail,'HMAC Authentication required') == 0 ) {
-					if( $this->hmac instanceof HMACSession ) {
-						$detalhes .= ' (sessão HMAC expirou)';
+				if( $json === null ) {
+					/**
+					 * Erro 401 não gerado pelo HMAC no servidor
+					 */
+					$detalhes = $response->getBody();
+				} else {
+					if( !property_exists($json, 'detail') ) {
+						/**
+						 * JSON não foi gerado pelo HMAC Server
+						 */
+						$detalhes = $response->getBody();
 					} else {
-						$detalhes .= ' (servidor requer HMAC com sessão)';
-					}
-				} elseif( strcmp($json->detail,'5 - Sessão HMAC não iniciada') == 0 ) {
-					if( $this->hmac instanceof HMACSession ) {
-						$detalhes .= ' (sessão HMAC expirou)';
-					} else {
-						$detalhes .= ' (servidor requer HMAC com sessão)';
+						$detalhes = $json->detail;
+						
+						/**
+						 * Alertar da necessidade de início de sessão para comunicação com URI
+						 */
+						if( strcmp($json->detail,'HMAC Authentication required') == 0 ) {
+							if( $this->hmac instanceof HMACSession ) {
+								$detalhes .= ' (sessão HMAC expirou)';
+							} else {
+								$detalhes .= ' (servidor requer HMAC com sessão)';
+							}
+						} elseif( strcmp($json->detail,'5 - Sessão HMAC não iniciada') == 0 ) {
+							if( $this->hmac instanceof HMACSession ) {
+								$detalhes .= ' (sessão HMAC expirou)';
+							} else {
+								$detalhes .= ' (servidor requer HMAC com sessão)';
+							}
+						}
+						
+						/**
+						 * Detalhes adicionais enviados pelo servidor
+						 */
+						if( property_exists($json, 'hmac') )
+							$detalhes .= ' [' . $json->hmac . ' v' . $json->version . ']';
 					}
 				}
-				
-				/**
-				 * Detalhes adicionais enviados pelo servidor
-				 */
-				if( property_exists($json, 'hmac') )
-					$detalhes .= ' [' . $json->hmac . ' v' . $json->version . ']';
-				
 			} catch (Exception $e) {
 			}
 			
-			throw new RuntimeException('Erro HMAC remoto: ' . $detalhes);
+			throw new RuntimeException('Erro HMAC remoto: ' . $detalhes, 401);
 		}
 		
 		/**
