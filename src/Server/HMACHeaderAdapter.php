@@ -160,7 +160,16 @@ class HMACHeaderAdapter extends HMACAbstractAdapter {
 		 * Calcular HMAC em toda a resposta
 		 */
 		$body = $response->getContent ();
-		$hmac = $this->hmac->getHmac ( $body );
+		
+		try {
+			$hmac = $this->hmac->getHmac ( $body );
+		} catch( HMACException $e ) {
+			/**
+			 * Exceção ao assinar resposta deve ser ignorada pelo server. Cliente irá tratar
+			 * falta de assinatura na resposta.
+			 */
+			return;
+		}
 		
 		/**
 		 * Acrescentar header com HMAC na resposta

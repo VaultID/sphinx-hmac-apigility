@@ -232,62 +232,71 @@ class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 		if ($this->hmac === NULL)
 			return;
 		
-		/**
-		 * Response do Controller
-		 */
-		$response = $event->getTarget ()->getResponse ();
+		try {
 		
-		/**
-		 * Recuperar sessão
-		 */
-		$session = new Container ( __CLASS__ );
-		
-		switch ($this->dataType) {
-			case HMACSession::SESSION_MESSAGE :
-				/**
-				 * Calcular HMAC em toda a resposta
-				 */
-				$body = $response->getContent ();
-				$hmac = $this->hmac->getHmac ( $body, HMACSession::SESSION_MESSAGE );
-				
-				/**
-				 * Após assinar mensagem atual, incrementar contador para aguardar próxima mensagem e salvar na sessão
-				 * Apenas se for uma requisição válida
-				 */
-				if( $response->getStatusCode() >= 200 && $response->getStatusCode() <= 299) {
-					$this->hmac->nextMessage ();
-					$session->hmac = $this->hmac;
-				}
-				break;
-			case HMACSession::SESSION_REQUEST :
-			case HMACSession::SESSION_RESPONSE :
-				/**
-				 * Calcular HMAC apenas do NONCE2 para responder ao pedido de início de sessão
-				 */
-				if( method_exists($this->hmac, 'getNonce2Value') ) {
-					$hmac = $this->hmac->getHmac ( $this->hmac->getNonce2Value (), HMACSession::SESSION_RESPONSE );
-				
+			/**
+			 * Response do Controller
+			 */
+			$response = $event->getTarget ()->getResponse ();
+			
+			/**
+			 * Recuperar sessão
+			 */
+			$session = new Container ( __CLASS__ );
+			
+			switch ($this->dataType) {
+				case HMACSession::SESSION_MESSAGE :
 					/**
-					 * Iniciar sessão HMAC e guardar na sessão PHP
+					 * Calcular HMAC em toda a resposta
 					 */
-					$this->hmac->startSession ();
-					$session->hmac = $this->hmac;
-				}
-				
-				break;
-			default :
-				throw new HMACException ( 'HMAC Message Type Error' );
-		}
-		
-		/**
-		 * Acrescentar header com HMAC na resposta
-		 */
-		if( method_exists($this->hmac, 'getNonce2Value') ) {
-			if ($this->dataType == HMACSession::SESSION_REQUEST) {
-				$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $this->hmac->getNonce2Value () . ':' . $hmac );
-			} else {
-				$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $hmac );
+					$body = $response->getContent ();
+					$hmac = $this->hmac->getHmac ( $body, HMACSession::SESSION_MESSAGE );
+					
+					/**
+					 * Após assinar mensagem atual, incrementar contador para aguardar próxima mensagem e salvar na sessão
+					 * Apenas se for uma requisição válida
+					 */
+					if( $response->getStatusCode() >= 200 && $response->getStatusCode() <= 299) {
+						$this->hmac->nextMessage ();
+						$session->hmac = $this->hmac;
+					}
+					break;
+				case HMACSession::SESSION_REQUEST :
+				case HMACSession::SESSION_RESPONSE :
+					/**
+					 * Calcular HMAC apenas do NONCE2 para responder ao pedido de início de sessão
+					 */
+					if( method_exists($this->hmac, 'getNonce2Value') ) {
+						$hmac = $this->hmac->getHmac ( $this->hmac->getNonce2Value (), HMACSession::SESSION_RESPONSE );
+					
+						/**
+						 * Iniciar sessão HMAC e guardar na sessão PHP
+						 */
+						$this->hmac->startSession ();
+						$session->hmac = $this->hmac;
+					}
+					
+					break;
+				default :
+					throw new HMACException ( 'HMAC Message Type Error' );
 			}
+			
+			/**
+			 * Acrescentar header com HMAC na resposta
+			 */
+			if( method_exists($this->hmac, 'getNonce2Value') ) {
+				if ($this->dataType == HMACSession::SESSION_REQUEST) {
+					$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $this->hmac->getNonce2Value () . ':' . $hmac );
+				} else {
+					$response->getHeaders ()->addHeaderLine ( self::HEADER_NAME, static::VERSION . ':' . $hmac );
+				}
+			}
+		} catch( HMACException $e ) {
+			/**
+			 * Exceção ao assinar resposta deve ser ignorada pelo server. Cliente irá tratar
+			 * falta de assinatura na resposta.
+			 */
+			return;
 		}
 	}
 }
