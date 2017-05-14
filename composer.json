@@ -16,9 +16,15 @@
             "./Module.php"
         ]
     },
+    "repositories": [
+        {
+	    "type": "vcs",
+	    "url": "https://github.com/reinaldoborges/rb-sphinx-hmac.git"
+        }
+    ],
     "require": {
         "php": ">=5.5",
-        "rb/sphinx-hmac": "dev-master",
+        "rb/sphinx-hmac": "v1.0.0",
         "zendframework/zend-http": "~2.5"
     },
     "minimum-stability": "dev",
