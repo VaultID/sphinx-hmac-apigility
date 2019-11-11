@@ -1,13 +1,13 @@
 {
-    "name": "rb/sphinx-hmac-zf2",
+    "name": "VaultID/sphinx-hmac-apigility",
     "description": "Hash-based Message Authentication Code (HMAC) for ZendFramework2",
     "license": "Apache-2.0",
     "keywords": [
-        "rb",
         "hmac",
-        "zf2"
+        "zf3",
+        "apigility"
     ],
-    "homepage": "https://github.com/reinaldoborges/rb-sphinx-hmac-zf2",
+    "homepage": "https://github.com/VaultID/sphinx-hmac-apigility",
     "autoload": {
         "psr-4": {
             "RB\\Sphinx\\Hmac\\Zend\\": "./src/"
