@@ -289,20 +289,24 @@ class HMACListener {
         if (array_key_exists($configKey, $innerConfig)) {
             return $innerConfig[$configKey];
         }
-        /** Obtém a configuração da pluralidade do controller {collection | entity} */
-        if (!array_key_exists($plurality, $innerConfig = $innerConfig[$controller])) {
+        /** Obtém a configuração do controller */
+        if (!array_key_exists($controller, $innerConfig)) {
             return $defaultConfig; // Retorna default caso não haja
-        } else if ($innerConfig == false) {
+        } else if (($innerConfig = $innerConfig[$controller]) == false) {
             return false; // Retorna sem aplicar HMAC
-        } else if (array_key_exists($configKey, $innerConfig = $innerConfig[$plurality])) {
-            return $innerConfig[$configKey]; // Retorna a configuração para todos os métodos {GET, POST...} da pluralidade
+        }
+        /** Obtém a configuração da pluralidade do controller {collection | entity} */
+        if (!array_key_exists($plurality, $innerConfig)) {
+            return $defaultConfig; // Retorna default caso não haja
+        } else if (($innerConfig = $innerConfig[$plurality]) == false) {
+            return false; // Retorna sem aplicar HMAC
         }
         /** Obtém a configuração do método {GET,POST...} na pluralidade do controller */
-        if(!array_key_exists($method, $innerConfig = $innerConfig)) {
+        if (!array_key_exists($method, $innerConfig)) {
             return $defaultConfig; // Retorna default caso não haja
-        } else if ($innerConfig == false) {
+        } else if (($innerConfig = $innerConfig[$method]) == false) {
             return false; // Retorna sem aplicar HMAC
-        } else if (array_key_exists($configKey, $innerConfig = $innerConfig[$method])) {
+        } else {
             return $innerConfig[$configKey]; // Retorna a configuração específica para o método da pluralidade
         }
         return $defaultConfig;
