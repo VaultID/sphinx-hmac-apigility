@@ -2,3 +2,5 @@
 /.buildpath
 /.project
 /coverage
+/vendor
+composer.lock

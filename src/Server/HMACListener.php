@@ -273,7 +273,7 @@ class HMACListener {
      * 
      * @return Array|null Configuração da chave informada.
      */
-    protected function _getActionConfig($configKey, $requestProps, $config) {
+    public function _getActionConfig($configKey, $requestProps, $config) {
         $controller = $requestProps['controller'];
         $plurality = $requestProps['plurality'];
         $method = $requestProps['method'];
@@ -294,12 +294,16 @@ class HMACListener {
             return $defaultConfig; // Retorna default caso não haja
         } else if (($innerConfig = $innerConfig[$controller]) == false) {
             return false; // Retorna sem aplicar HMAC
+        } else if (array_key_exists($configKey, $innerConfig)) {
+            return $innerConfig[$configKey]; // Retorna a configuração específica para o controller
         }
         /** Obtém a configuração da pluralidade do controller {collection | entity} */
         if (!array_key_exists($plurality, $innerConfig)) {
             return $defaultConfig; // Retorna default caso não haja
         } else if (($innerConfig = $innerConfig[$plurality]) == false) {
             return false; // Retorna sem aplicar HMAC
+        } else if (array_key_exists($configKey, $innerConfig)) {
+            return $innerConfig[$configKey]; // Retorna a configuração específica para o método
         }
         /** Obtém a configuração do método {GET,POST...} na pluralidade do controller */
         if (!array_key_exists($method, $innerConfig)) {
