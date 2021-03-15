@@ -35,7 +35,7 @@ class Module implements AutoloaderProviderInterface, ConfigProviderInterface {
     /**
      * Baixa prioridade, para avaliar necessidade de autenticação HMAC após todas as operações de rota
      */
-    $em->attach(MvcEvent::EVENT_DISPATCH, $services->get('RB\Sphinx\Hmac\Zend\Server\HMACListener'), -1000);
+    $em->attach(MvcEvent::EVENT_DISPATCH, $services->get('RB\Sphinx\Hmac\Zend\Server\HMACListener'), 10);
     
     /**
      * Baixa prioridade, para acrescentar assinatura HMAC após todas as operações na resposta
@@ -45,7 +45,7 @@ class Module implements AutoloaderProviderInterface, ConfigProviderInterface {
     $em->attach(
         MvcEvent::EVENT_FINISH,
         array($services->get('RB\Sphinx\Hmac\Zend\Server\HMACListener'), 'onFinish'),
-        -1000
+        10
     );
   }
 }
