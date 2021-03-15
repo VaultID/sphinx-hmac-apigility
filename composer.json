@@ -1,5 +1,5 @@
 {
-    "name": "VaultID/sphinx-hmac-apigility",
+    "name": "vaultid/sphinx-hmac-apigility",
     "description": "Hash-based Message Authentication Code (HMAC) for ZendFramework2",
     "license": "Apache-2.0",
     "keywords": [
@@ -7,7 +7,7 @@
         "zf3",
         "apigility"
     ],
-    "homepage": "https://github.com/VaultID/sphinx-hmac-apigility",
+    "homepage": "https://github.com/vaultid/sphinx-hmac-apigility",
     "autoload": {
         "psr-4": {
             "RB\\Sphinx\\Hmac\\Zend\\": "./src/"
@@ -43,6 +43,6 @@
         ]
     },
     "require-dev": {
-        "phpunit/PHPUnit": "~4.0"
+        "phpunit/phpunit": "~4.0"
     }
 }
