@@ -2,8 +2,8 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\ServiceManager\AbstractFactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\ServiceManager\AbstractFactoryInterface;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
  * EXEMPLO DE ABSTRACT FACTORY PARA HMAC

@@ -2,18 +2,18 @@
 
 namespace RB\Sphinx\Hmac\Zend;
 
-use Zend\ModuleManager\Feature\AutoloaderProviderInterface;
-use Zend\ModuleManager\Feature\ConfigProviderInterface;
-use Zend\Mvc\MvcEvent;
-use Zend\Mvc\ModuleRouteListener;
+use Laminas\ModuleManager\Feature\AutoloaderProviderInterface;
+use Laminas\ModuleManager\Feature\ConfigProviderInterface;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Mvc\ModuleRouteListener;
 
 class Module implements AutoloaderProviderInterface, ConfigProviderInterface {
   public function getAutoloaderConfig() {
     return [
-        'Zend\Loader\ClassMapAutoloader' => [
+        'Laminas\Loader\ClassMapAutoloader' => [
             __DIR__ . '/autoload_classmap.php' 
         ],
-        'Zend\Loader\StandardAutoloader' => [
+        'Laminas\Loader\StandardAutoloader' => [
             'namespaces' => [
                 __NAMESPACE__ => __DIR__ . '/src/' 
             ] 

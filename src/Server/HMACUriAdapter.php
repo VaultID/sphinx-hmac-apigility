@@ -2,9 +2,9 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\Mvc\MvcEvent;
-use Zend\Http\Request;
-use Zend\Authentication\Result;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Http\Request;
+use Laminas\Authentication\Result;
 
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Algorithm\HMACv1;

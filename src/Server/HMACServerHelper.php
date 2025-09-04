@@ -11,7 +11,7 @@ class HMACServerHelper {
 	
 	/**
 	 * 
-	 * @param \Zend\Mvc\MvcEvent|\ZF\Rest\ResourceEvent $event
+	 * @param \Laminas\Mvc\MvcEvent|\Laminas\ApiTools\Rest\ResourceEvent $event
 	 * @return \RB\Sphinx\Hmac\Zend\Server\HMACAbstractAdapter|NULL
 	 */
 	static public function getHmacAdapter($event) {
@@ -20,7 +20,7 @@ class HMACServerHelper {
 	
 	/**
 	 * 
-	 * @param \Zend\Mvc\MvcEvent|\ZF\Rest\ResourceEvent $event
+	 * @param \Laminas\Mvc\MvcEvent|\Laminas\ApiTools\Rest\ResourceEvent $event
 	 * @return string|NULL
 	 */
 	static public function getHmacKeyId($event) {

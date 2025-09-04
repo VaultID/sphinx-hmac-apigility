@@ -2,15 +2,15 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\Mvc\MvcEvent;
-use Zend\Authentication\Result;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Authentication\Result;
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Algorithm\HMACv1;
 use RB\Sphinx\Hmac\Hash\Sha256;
 use RB\Sphinx\Hmac\Key\StaticKey;
 use RB\Sphinx\Hmac\Nonce\DummyNonce;
 use RB\Sphinx\Hmac\Exception\HMACException;
-use Zend\Http\Request;
+use Laminas\Http\Request;
 
 class HMACHeaderAdapter extends HMACAbstractAdapter {
 	

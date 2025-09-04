@@ -4,8 +4,8 @@ namespace RB\Sphinx\Hmac\Zend\Server\Plugin;
 
 use RB\Sphinx\Hmac\Zend\Server\HMACServerHelper;
 
-use Zend\Mvc\Controller\Plugin\AbstractPlugin;
-use Zend\Mvc\Controller\AbstractController;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Mvc\Controller\AbstractController;
 
 class HMACKeyId extends AbstractPlugin {
 	/**

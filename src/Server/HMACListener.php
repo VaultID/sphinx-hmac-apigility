@@ -2,12 +2,12 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\Mvc\MvcEvent;
-use Zend\Http\Request;
-use Zend\Authentication\Result;
-use Zend\ServiceManager\ServiceLocatorInterface;
-use Zend\EventManager\SharedEventManagerInterface;
-use ZF\Rest\ResourceEvent;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Http\Request;
+use Laminas\Authentication\Result;
+use Laminas\ServiceManager\ServiceLocatorInterface;
+use Laminas\EventManager\SharedEventManagerInterface;
+use Laminas\ApiTools\Rest\ResourceEvent;
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Zend\Server\HMACHeaderAdapter;
 use RB\Sphinx\Hmac\Zend\Server\HMACSessionHeaderAdapter;
@@ -110,7 +110,7 @@ class HMACListener {
             /**
              * Se o Adapter interromper a requisição, devolver imediatamente a resposta
              *
-             * TARGET: Zend\Mvc\Controller\AbstractActionController
+             * TARGET: Laminas\Mvc\Controller\AbstractActionController
              */
             return $e->getTarget()->getResponse();
         } catch (HMACException $exception) {
@@ -125,7 +125,7 @@ class HMACListener {
         if (!$result->isValid()) {
 
             /**
-             * TARGET: Zend\Mvc\Controller\AbstractActionController
+             * TARGET: Laminas\Mvc\Controller\AbstractActionController
              */
             $response = $e->getTarget()->getResponse();
 
@@ -254,7 +254,7 @@ class HMACListener {
     protected function getRequestProperties($event, $request, $config) {
         $routeMatch = $event->getRouteMatch();
         $routeParams = $routeMatch->getParams();
-        $routeIdName = $config['zf-rest'][$routeParams['controller']]['route_identifier_name'];
+        $routeIdName = $config['api-tools-rest'][$routeParams['controller']]['route_identifier_name'];
         $plurality = array_key_exists($routeIdName, $routeParams) ? 'entity' : 'collection';
         
         return[

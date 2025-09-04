@@ -2,8 +2,8 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\Mvc\MvcEvent;
-use Zend\Authentication\Result;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Authentication\Result;
 use RB\Sphinx\Hmac\HMAC;
 use RB\Sphinx\Hmac\Algorithm\HMACv1;
 use RB\Sphinx\Hmac\Hash\Sha256;
@@ -12,9 +12,9 @@ use RB\Sphinx\Hmac\Nonce\DummyNonce;
 use RB\Sphinx\Hmac\Exception\HMACException;
 use RB\Sphinx\Hmac\HMACSession;
 use RB\Sphinx\Hmac\Exception\HMACAdapterInterruptException;
-use Zend\Session\Container;
-use Zend\Http\Response;
-use Zend\Http\Request;
+use Laminas\Session\Container;
+use Laminas\Http\Response;
+use Laminas\Http\Request;
 
 class HMACSessionHeaderAdapter extends HMACAbstractAdapter {
 	

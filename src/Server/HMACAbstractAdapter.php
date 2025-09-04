@@ -2,8 +2,8 @@
 
 namespace RB\Sphinx\Hmac\Zend\Server;
 
-use Zend\Mvc\MvcEvent;
-use Zend\Http\Request;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Http\Request;
 
 abstract class HMACAbstractAdapter {
 	

@@ -8,7 +8,7 @@ final class HMACListenerTest extends TestCase
     protected $requestProps;
     protected $controller = 'ApplicationManager\\V1\\Rest\\Lock\\Controller';
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->config = ['rb_sphinx_hmac_server' => [
             // Opcionalmente, defina seletor e/ou adapter padrão a ser utilizado nos Controller's com HMAC ativo
