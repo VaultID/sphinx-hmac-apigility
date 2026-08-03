@@ -254,11 +254,19 @@ class HMACListener {
     protected function getRequestProperties($event, $request, $config) {
         $routeMatch = $event->getRouteMatch();
         $routeParams = $routeMatch->getParams();
-        $routeIdName = $config['api-tools-rest'][$routeParams['controller']]['route_identifier_name'];
+        $controller = $routeParams['controller'];
+        if (isset($config['api-tools-rpc'][$controller])) {
+            return [
+                'controller' => $controller,
+                'plurality' => null,
+                'method' => $request->getMethod(),
+            ];
+        }
+        $routeIdName = $config['api-tools-rest'][$controller]['route_identifier_name'];
         $plurality = array_key_exists($routeIdName, $routeParams) ? 'entity' : 'collection';
         
         return[
-            'controller' => $routeParams['controller'],
+            'controller' => $controller,
             'plurality' => $plurality,
             'method' => $request->getMethod()
         ];
