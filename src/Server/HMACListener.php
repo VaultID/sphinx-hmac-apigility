@@ -190,6 +190,10 @@ class HMACListener {
 
         $requestProps = $this->getRequestProperties($e, $this->restParams['request'], $config);
 
+        if ($requestProps === null) {
+            return false;
+        }
+
         /**
          * Se Controller não está na lista, retornar sem autenticação HMAC
          */
@@ -262,6 +266,11 @@ class HMACListener {
                 'method' => $request->getMethod(),
             ];
         }
+
+        if (!isset($config['api-tools-rest'][$controller])) {
+			return null;
+		}
+        
         $routeIdName = $config['api-tools-rest'][$controller]['route_identifier_name'];
         $plurality = array_key_exists($routeIdName, $routeParams) ? 'entity' : 'collection';
         
